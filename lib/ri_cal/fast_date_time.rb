@@ -10,7 +10,23 @@ module RiCal
     SECONDS_IN_A_DAY = 60*60*24 unless defined? SECONDS_IN_A_DAY
 
     include Comparable
-
+    
+    def self.parse(val, just_date = false)
+      if match_data = /\A(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(?:(Z)|(?:(-|\+)(\d{2})(\d{2})))?)?\z/.match(val.strip)
+        year, month, day, hour, minute, second, utc, tzsign, tzhour, tzminute = *match_data[1..-1]
+        if just_date
+          hour, minute, second, timezone = 0
+        elsif hour
+          timezone = utc ? 0 : tzsign ? (tzsign == '-' ? -1 : 1) * (tzhour.to_i * 60 + tzminute.to_i) * 60 : 0
+        end
+        new(year.to_i, month.to_i, day.to_i, hour.to_i, minute.to_i, second.to_i, timezone.to_i)
+      elsif just_date
+        from_date_time(::DateTime.parse(::DateTime.parse(val).strftime("%Y%m%d")))
+      else
+        from_date_time(::DateTime.parse(val))
+      end
+    end
+    
     def initialize(year, month, day, hour, min, sec, offset_seconds)
       @date = Date.civil(year, month, day)
       @secs_since_bod = hms_to_seconds(hour, min, sec)

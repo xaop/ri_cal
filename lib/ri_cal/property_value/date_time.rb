@@ -93,7 +93,7 @@ module RiCal
         when nil
           @date_time_value = nil
         when String
-          @date_time_value = FastDateTime.from_date_time(::DateTime.parse(val))
+          @date_time_value = FastDateTime.parse(val)
           if val =~/Z/
             self.tzid = 'UTC'
           else

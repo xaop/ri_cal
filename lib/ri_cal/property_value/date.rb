@@ -38,9 +38,9 @@ module RiCal
         when nil
           @date_time_value = nil
         when String
-          @date_time_value = FastDateTime.from_date_time(::DateTime.parse(::DateTime.parse(val).strftime("%Y%m%d")))
+          @date_time_value = FastDateTime.parse(val, true)
         when ::Time, ::Date, ::DateTime
-          @date_time_value = FastDateTime.from_date_time(::DateTime.parse(val.strftime("%Y%m%d")))
+          @date_time_value = FastDateTime.parse(val.strftime("%Y%m%d"))
         when FastDateTime
           @date_time_value = val
         end
