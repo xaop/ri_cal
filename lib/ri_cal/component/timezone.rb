@@ -59,6 +59,8 @@ module RiCal
             else
               [candidate_standard].compact
             end
+          else
+            []
           end
         end
 
