@@ -1,4 +1,9 @@
 module RiCal
+
+  PARAM_SINGLE_VALUE_REGEXP = /"[^"]*"|[^";:,]*/
+  PARAM_VALUE_REGEXP = /#{PARAM_SINGLE_VALUE_REGEXP}(?:,#{PARAM_SINGLE_VALUE_REGEXP})*/
+  PARAM_REGEXP = /([a-zA-Z\-0-9_]+)=(#{PARAM_VALUE_REGEXP})/
+
   #- ©2009 Rick DeNatale
   #- All rights reserved. Refer to the file README.txt for the license
   #
@@ -22,15 +27,19 @@ module RiCal
 
     def self.parse_params(string) #:nodoc:
       if string
-        string.split(";").inject({}) { |result, val|
-          m = /^(.+)=(.+)$/.match(val)
-          raise "Invalid parameter value #{val.inspect}" unless m
-          #TODO - The gsub below is a simplest fix for http://rick_denatale.lighthouseapp.com/projects/30941/tickets/19
-          #       it may need further examination if more pathological cases show up.
-          param_val = m[2].sub(/^\"(.*)\"$/, '\1') 
-          result[m[1]] = param_val
-          result 
-        }
+        if string == ""
+          {}
+        elsif string =~ /\A#{PARAM_REGEXP}(?:;#{PARAM_REGEXP})*\z/
+          string.scan(PARAM_REGEXP).inject({}) { |result, (key, val)|
+            # Just remove the quotes as they are not allowed in both quoted and unquoted values
+            param_val = val.gsub(/"/, '')
+            param_val = param_val.gsub(/&quot;/, '"').gsub(/&apos;/, "'").gsub(/&amp;/, "&").gsub(/&#([0-9]+);/) { $1.to_i.chr }
+            result[key] = param_val
+            result
+          }
+        else
+          raise "Invalid parameters #{string.inspect}"
+        end
       else
         nil
       end
@@ -56,7 +65,7 @@ module RiCal
       end
       [parse_params(params.join(":")), values.join(":")]
     end
-    
+
     def separate_line(string) #:nodoc:
       match = string.match(/^([^;:]*)(.*)$/)
       name = match[1]
