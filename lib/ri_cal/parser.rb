@@ -1,6 +1,6 @@
 module RiCal
 
-  PARAM_SINGLE_VALUE_REGEXP = /"[^"]*"|[^";:,]*/
+  PARAM_SINGLE_VALUE_REGEXP = /"[^"]*"[^";:,]*|[^";:,]*/
   PARAM_VALUE_REGEXP = /#{PARAM_SINGLE_VALUE_REGEXP}(?:,#{PARAM_SINGLE_VALUE_REGEXP})*/
   PARAM_REGEXP = /([a-zA-Z\-0-9_]+)=(#{PARAM_VALUE_REGEXP})/
 

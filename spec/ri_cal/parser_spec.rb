@@ -95,10 +95,10 @@ describe RiCal::Parser do
     it "should support newlines in quoted parameter values" do
       input = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=name
  @host.org;X-NUM-GUESTS=0;X-RESPONSE-COMMENT="Some content that
-  gets split but then contains a newlinbe like this:
+  gets split but then contains a newline like this:
 
 haha!":mailto:name@host.tld}
-      output = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=name@host.org;X-NUM-GUESTS=0;X-RESPONSE-COMMENT="Some content that gets split but then contains a newlinbe like this:
+      output = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=name@host.org;X-NUM-GUESTS=0;X-RESPONSE-COMMENT="Some content that gets split but then contains a newline like this:
 
 haha!":mailto:name@host.tld}
       RiCal::Parser.new(StringIO.new(input)).next_line.should == output
@@ -107,11 +107,11 @@ haha!":mailto:name@host.tld}
     it "should support quotes in values" do
       input = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=name
  @host.org;X-NUM-GUESTS=0;X-RESPONSE-COMMENT="Some content that
-  gets split but then contains a newlinbe like this:
+  gets split but then contains a newline like this:
 
 haha!":mailto:"name@host.tld
 ATTENDEE:mailto:name@host.tld}
-      output = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=name@host.org;X-NUM-GUESTS=0;X-RESPONSE-COMMENT="Some content that gets split but then contains a newlinbe like this:
+      output = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=name@host.org;X-NUM-GUESTS=0;X-RESPONSE-COMMENT="Some content that gets split but then contains a newline like this:
 
 haha!":mailto:"name@host.tld}
       RiCal::Parser.new(StringIO.new(input)).next_line.should == output
@@ -149,9 +149,7 @@ haha!":mailto:"name@host.tld}
     end
 
     it "should handle the case of quotes and newlines in the parameters correctly" do
-      input = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=name
- @host.org;X-NUM-GUESTS=0;X-RESPONSE-COMMENT="Some content that
-  gets split but then contains a newlinbe like this:
+      input = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=name@host.org;X-NUM-GUESTS=0;X-RESPONSE-COMMENT="Some content that gets split but then contains a newline like this:
 
 haha!":mailto:"name@host.tld}
       @parser.separate_line(input).should == {
@@ -160,11 +158,26 @@ haha!":mailto:"name@host.tld}
           "CUTYPE" => "INDIVIDUAL",
           "ROLE" => "REQ-PARTICIPANT",
           "PARTSTAT" => "ACCEPTED",
-          "CN" => "name\n @host.org",
+          "CN" => "name@host.org",
           "X-NUM-GUESTS" => "0",
-          "X-RESPONSE-COMMENT" => "Some content that\n  gets split but then contains a newlinbe like this:\n\nhaha!"
+          "X-RESPONSE-COMMENT" => "Some content that gets split but then contains a newline like this:\n\nhaha!"
         },
         :value => "mailto:\"name@host.tld"
+      }
+    end
+
+    it "should be lenient towards misquoted parameters" do
+      input = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;CN="Enter guest emails.\, name"@host.tld;X-NUM-GUESTS=0:mailto:"enter guest emails., name"@host.tld}
+      @parser.separate_line(input).should == {
+        :name => "ATTENDEE",
+        :params => {
+          "CUTYPE" => "INDIVIDUAL",
+          "ROLE" => "REQ-PARTICIPANT",
+          "PARTSTAT" => "NEEDS-ACTION",
+          "CN" => "Enter guest emails., name@host.tld",
+          "X-NUM-GUESTS" => "0"
+        },
+        :value => "mailto:\"enter guest emails., name\"@host.tld"
       }
     end
   end
