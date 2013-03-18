@@ -91,6 +91,31 @@ describe RiCal::Parser do
     it "should combine lines" do
       RiCal::Parser.new(StringIO.new("abc\n def\n  ghi")).next_line.should == "abcdef ghi"
     end
+
+    it "should support newlines in quoted parameter values" do
+      input = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=name
+ @host.org;X-NUM-GUESTS=0;X-RESPONSE-COMMENT="Some content that
+  gets split but then contains a newlinbe like this:
+
+haha!":mailto:name@host.tld}
+      output = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=name@host.org;X-NUM-GUESTS=0;X-RESPONSE-COMMENT="Some content that gets split but then contains a newlinbe like this:
+
+haha!":mailto:name@host.tld}
+      RiCal::Parser.new(StringIO.new(input)).next_line.should == output
+    end
+
+    it "should support quotes in values" do
+      input = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=name
+ @host.org;X-NUM-GUESTS=0;X-RESPONSE-COMMENT="Some content that
+  gets split but then contains a newlinbe like this:
+
+haha!":mailto:"name@host.tld
+ATTENDEE:mailto:name@host.tld}
+      output = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=name@host.org;X-NUM-GUESTS=0;X-RESPONSE-COMMENT="Some content that gets split but then contains a newlinbe like this:
+
+haha!":mailto:"name@host.tld}
+      RiCal::Parser.new(StringIO.new(input)).next_line.should == output
+    end
   end
 
   describe ".separate_line" do
@@ -121,6 +146,26 @@ describe RiCal::Parser do
 
     it "should find the value" do
       @parser.separate_line("abc;x=y;z=1,2:value")[:value].should == "value"
+    end
+
+    it "should handle the case of quotes and newlines in the parameters correctly" do
+      input = %Q{ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=name
+ @host.org;X-NUM-GUESTS=0;X-RESPONSE-COMMENT="Some content that
+  gets split but then contains a newlinbe like this:
+
+haha!":mailto:"name@host.tld}
+      @parser.separate_line(input).should == {
+        :name => "ATTENDEE",
+        :params => {
+          "CUTYPE" => "INDIVIDUAL",
+          "ROLE" => "REQ-PARTICIPANT",
+          "PARTSTAT" => "ACCEPTED",
+          "CN" => "name\n @host.org",
+          "X-NUM-GUESTS" => "0",
+          "X-RESPONSE-COMMENT" => "Some content that\n  gets split but then contains a newlinbe like this:\n\nhaha!"
+        },
+        :value => "mailto:\"name@host.tld"
+      }
     end
   end
 

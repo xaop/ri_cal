@@ -14,16 +14,35 @@ module RiCal
       begin
         result = buffer_or_line
         @buffer = nil
-        while /^\s/ =~ buffer_or_line
-          result = "#{result}#{@buffer[1..-1]}"
+        state = :outside
+        state = check_state(state, result)
+        while (m = buffer_or_line.match(/^\s/)) || state == :inside
+          if m
+            @buffer = @buffer[1..-1]
+          else
+            @buffer = "\n" + @buffer
+          end
+          state &&= check_state(state, @buffer)
+          result = "#{result}#{@buffer}"
           @buffer = nil
         end
+        result
       rescue EOFError
-        return nil
-      ensure
-        return result
+        result
       end
     end
+
+    def check_state(state, buffer)
+      buffer.scan(/[\"\:]/) do |char|
+        if char == ':'
+          return nil if state == :outside
+        else
+          state = state == :inside ? :outside : :inside
+        end
+      end
+      state
+    end
+    private :check_state
 
     def self.parse_params(string) #:nodoc:
       if string
@@ -67,7 +86,7 @@ module RiCal
     end
 
     def separate_line(string) #:nodoc:
-      match = string.match(/^([^;:]*)(.*)$/)
+      match = string.match(/^([^;:]*)(.*)$/m)
       name = match[1]
       @last_line_str = string
       params, value = *Parser.params_and_value(match[2])
